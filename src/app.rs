@@ -7,6 +7,9 @@ pub struct TemplateApp {
 
     #[serde(skip)] // This how you opt-out of serialization of a field
     value: f32,
+
+    #[serde(skip)] // This how you opt-out of serialization of a field
+    select: Selector,
 }
 
 impl Default for TemplateApp {
@@ -15,9 +18,13 @@ impl Default for TemplateApp {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+            select: Selector::Memory,
         }
     }
 }
+
+#[derive(PartialEq)]
+enum Selector { Memory, DiskSpace}
 
 impl TemplateApp {
     /// Called once before the first frame.
@@ -80,22 +87,33 @@ impl eframe::App for TemplateApp {
                 self.value += 1.0;
             }
 
+
+            ui.radio_value(&mut self.select, Selector::Memory, "Memory");
+            ui.radio_value(&mut self.select, Selector::DiskSpace, "Disk space");
+
+            egui::Window::new("My Window").show(ctx, |ui| {
+                ui.label("Hello World!");
+                ui.radio_value(&mut self.select, Selector::Memory, "Memory");
+                ui.radio_value(&mut self.select, Selector::DiskSpace, "Disk space");
+             });
+
             ui.separator();
 
-            let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
-                let x = i as f64 * 0.01+self.value as f64;
-                [x, x.sin()]
-            }).collect();
-            let line = egui_plot::Line::new(sin);
-            egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
-
-            let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
-                let x = i as f64 * 0.01-self.value as f64;
-                [x, x.cos()]
-            }).collect();
-            let line = egui_plot::Line::new(cos);
-            egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
-
+            if self.select == Selector::Memory {
+                let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
+                    let x = i as f64 * 0.01+self.value as f64;
+                    [x, x.sin()]
+                }).collect();
+                let line = egui_plot::Line::new(sin);
+                egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
+            } else {
+                let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
+                    let x = i as f64 * 0.01-self.value as f64;
+                    [x, x.cos()]
+                }).collect();
+                let line = egui_plot::Line::new(cos);
+                egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
+            }
             ui.add(egui::github_link_file!(
                 "https://github.com/emilk/eframe_template/blob/master/",
                 "Source code."
@@ -105,6 +123,8 @@ impl eframe::App for TemplateApp {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
             });
+
+
         });
     }
 }
