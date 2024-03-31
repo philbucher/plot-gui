@@ -83,14 +83,14 @@ impl eframe::App for TemplateApp {
             ui.separator();
 
             let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
-                let x = i as f64 * 0.01;
+                let x = i as f64 * 0.01+self.value as f64;
                 [x, x.sin()]
             }).collect();
             let line = egui_plot::Line::new(sin);
             egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
 
             let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
-                let x = i as f64 * 0.01;
+                let x = i as f64 * 0.01-self.value as f64;
                 [x, x.cos()]
             }).collect();
             let line = egui_plot::Line::new(cos);
