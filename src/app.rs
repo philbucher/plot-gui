@@ -100,8 +100,8 @@ impl eframe::App for TemplateApp {
             ui.horizontal(|ui| {
                 ui.label("Write something: ");
                 ui.text_edit_singleline(&mut self.label);
-                ui.label(format!("NUmber of PlotStates: {}", self.plot_states.len()))
             });
+            ui.label(format!("Number of PlotStates: {}", self.plot_states.len()));
 
             ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
             if ui.button("Increment").clicked() {
@@ -109,37 +109,39 @@ impl eframe::App for TemplateApp {
             }
 
 
-            if ui.button("New Window").clicked() {
-                self.plot_states.push(PlotState{label: self.label.clone(), select: self.select, open:true});
+            if ui.button("New Window").on_hover_text("this is the tooltip").clicked() {
+                if !self.plot_states.iter().any(|ps| ps.label==self.label) {
+                    self.plot_states.push(PlotState{label: self.label.clone(), select: self.select, open:true});
+                }
             }
 
             // delete the closed windows
             self.plot_states.retain(|ps| ps.open);
 
-            ui.vertical(|ui| {
-                for ps in self.plot_states.iter_mut() {
-                    egui::Window::new(ps.label.clone()).title_bar(true).open(&mut ps.open).show(ctx, |win_ui| {
-                        win_ui.label("Hello World!");
-                        win_ui.radio_value(&mut ps.select, Selector::Memory, "Memory");
-                        win_ui.radio_value(&mut ps.select, Selector::DiskSpace, "Disk space");
-                    if ps.select == Selector::Memory {
-                        let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
-                            let x = i as f64 * 0.01+self.value as f64;
-                            [x, x.sin()]
-                        }).collect();
-                        let line = egui_plot::Line::new(sin);
-                        egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
-                    } else {
-                        let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
-                            let x = i as f64 * 0.01-self.value as f64;
-                            [x, x.cos()]
-                        }).collect();
-                        let line = egui_plot::Line::new(cos);
-                        egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
-                    }
-                });
+            for ps in self.plot_states.iter_mut() {
+                egui::Window::new(ps.label.clone()).title_bar(true).open(&mut ps.open).show(ctx, |win_ui| {
+                    win_ui.label("Hello World!");
+                    win_ui.horizontal(|win_ui_hor| {
+                        win_ui_hor.radio_value(&mut ps.select, Selector::Memory, "Memory");
+                        win_ui_hor.radio_value(&mut ps.select, Selector::DiskSpace, "Disk space");
+                    });
+                if ps.select == Selector::Memory {
+                    let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
+                        let x = i as f64 * 0.01+self.value as f64;
+                        [x, x.sin()]
+                    }).collect();
+                    let line = egui_plot::Line::new(sin);
+                    egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
+                } else {
+                    let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
+                        let x = i as f64 * 0.01-self.value as f64;
+                        [x, x.cos()]
+                    }).collect();
+                    let line = egui_plot::Line::new(cos);
+                    egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
                 }
             });
+            }
 
 
             ui.separator();
