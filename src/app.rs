@@ -10,6 +10,9 @@ pub struct TemplateApp {
 
     #[serde(skip)] // This how you opt-out of serialization of a field
     select: Selector,
+
+    #[serde(skip)]
+    plot_states: std::vec::Vec<PlotState>,
 }
 
 impl Default for TemplateApp {
@@ -19,11 +22,28 @@ impl Default for TemplateApp {
             label: "Hello World!".to_owned(),
             value: 2.7,
             select: Selector::Memory,
+            plot_states: Vec::new(),
         }
     }
 }
 
-#[derive(PartialEq)]
+struct PlotState {
+    label: String,
+    select: Selector,
+    open: bool,
+
+}
+impl Default for PlotState {
+    fn default() -> Self {
+        Self {
+            label: "Hello World!".to_owned(),
+            select: Selector::Memory,
+            open: true,
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Copy)]
 enum Selector { Memory, DiskSpace}
 
 impl TemplateApp {
@@ -91,29 +111,38 @@ impl eframe::App for TemplateApp {
             ui.radio_value(&mut self.select, Selector::Memory, "Memory");
             ui.radio_value(&mut self.select, Selector::DiskSpace, "Disk space");
 
-            egui::Window::new("My Window").show(ctx, |ui| {
-                ui.label("Hello World!");
-                ui.radio_value(&mut self.select, Selector::Memory, "Memory");
-                ui.radio_value(&mut self.select, Selector::DiskSpace, "Disk space");
-             });
+            if ui.button("New Window").clicked() {
+                self.plot_states.push(PlotState{label: self.label.clone(), select: self.select, open:true});
+            }
+
+            ui.vertical(|ui| {
+                for ps in self.plot_states.iter_mut() {
+                    egui::Window::new(ps.label.clone()).title_bar(true).open(&mut ps.open).show(ctx, |win_ui| {
+                        win_ui.label("Hello World!");
+                        win_ui.radio_value(&mut ps.select, Selector::Memory, "Memory");
+                        win_ui.radio_value(&mut ps.select, Selector::DiskSpace, "Disk space");
+                    if ps.select == Selector::Memory {
+                        let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
+                            let x = i as f64 * 0.01+self.value as f64;
+                            [x, x.sin()]
+                        }).collect();
+                        let line = egui_plot::Line::new(sin);
+                        egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
+                    } else {
+                        let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
+                            let x = i as f64 * 0.01-self.value as f64;
+                            [x, x.cos()]
+                        }).collect();
+                        let line = egui_plot::Line::new(cos);
+                        egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
+                    }
+                });
+                }
+            });
+
 
             ui.separator();
 
-            if self.select == Selector::Memory {
-                let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
-                    let x = i as f64 * 0.01+self.value as f64;
-                    [x, x.sin()]
-                }).collect();
-                let line = egui_plot::Line::new(sin);
-                egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
-            } else {
-                let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
-                    let x = i as f64 * 0.01-self.value as f64;
-                    [x, x.cos()]
-                }).collect();
-                let line = egui_plot::Line::new(cos);
-                egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
-            }
             ui.add(egui::github_link_file!(
                 "https://github.com/emilk/eframe_template/blob/master/",
                 "Source code."
