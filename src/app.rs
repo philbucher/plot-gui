@@ -12,7 +12,7 @@ pub struct TemplateApp {
     select: Selector,
 
     #[serde(skip)]
-    plot_states: std::vec::Vec<PlotState>,
+    plot_states: std::vec::Vec<PlotState>, // should be map if this should be the unique Id of the window. Also, should be ordered. Or, drop the others
 }
 
 impl Default for TemplateApp {
@@ -100,6 +100,7 @@ impl eframe::App for TemplateApp {
             ui.horizontal(|ui| {
                 ui.label("Write something: ");
                 ui.text_edit_singleline(&mut self.label);
+                ui.label(format!("NUmber of PlotStates: {}", self.plot_states.len()))
             });
 
             ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
@@ -108,12 +109,12 @@ impl eframe::App for TemplateApp {
             }
 
 
-            ui.radio_value(&mut self.select, Selector::Memory, "Memory");
-            ui.radio_value(&mut self.select, Selector::DiskSpace, "Disk space");
-
             if ui.button("New Window").clicked() {
                 self.plot_states.push(PlotState{label: self.label.clone(), select: self.select, open:true});
             }
+
+            // delete the closed windows
+            self.plot_states.retain(|ps| ps.open);
 
             ui.vertical(|ui| {
                 for ps in self.plot_states.iter_mut() {
