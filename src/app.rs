@@ -56,6 +56,7 @@ impl eframe::App for TemplateApp {
                     ui.menu_button("File", |ui| {
                         if ui.button("Quit").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            // ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(true))
                         }
                     });
                     ui.add_space(16.0);
@@ -80,6 +81,20 @@ impl eframe::App for TemplateApp {
             }
 
             ui.separator();
+
+            let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
+                let x = i as f64 * 0.01;
+                [x, x.sin()]
+            }).collect();
+            let line = egui_plot::Line::new(sin);
+            egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
+
+            let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
+                let x = i as f64 * 0.01;
+                [x, x.cos()]
+            }).collect();
+            let line = egui_plot::Line::new(cos);
+            egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(ui, |plot_ui| plot_ui.line(line));
 
             ui.add(egui::github_link_file!(
                 "https://github.com/emilk/eframe_template/blob/master/",
