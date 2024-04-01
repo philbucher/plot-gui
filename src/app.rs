@@ -13,6 +13,7 @@ pub struct TemplateApp {
 
     #[serde(skip)]
     plot_states: std::vec::Vec<PlotState>, // should be map if this should be the unique Id of the window. Also, should be ordered. Or, drop the others
+    #[serde(skip)]
     picked_path: Option<String>,
 }
 
@@ -109,14 +110,14 @@ impl eframe::App for TemplateApp {
             if ui.button("Increment").clicked() {
                 self.value += 1.0;
             }
-            if ui.button("Open file…").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
+            if ui.button("Open folder…").clicked() {
+                if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     self.picked_path = Some(path.display().to_string());
                 }
             }
             if let Some(picked_path) = &self.picked_path {
                 ui.horizontal(|ui| {
-                    ui.label("Picked file:");
+                    ui.label("Picked folder:");
                     ui.monospace(picked_path);
                 });
             }
