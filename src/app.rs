@@ -1,3 +1,5 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -15,6 +17,9 @@ pub struct TemplateApp {
     plot_states: std::vec::Vec<PlotState>, // should be map if this should be the unique Id of the window. Also, should be ordered. Or, drop the others
     #[serde(skip)]
     picked_path: Option<String>,
+
+    link_cursor: bool,
+    link_axis: bool,
 }
 
 impl Default for TemplateApp {
@@ -26,6 +31,8 @@ impl Default for TemplateApp {
             select: Selector::Memory,
             plot_states: Vec::new(),
             picked_path: None,
+            link_cursor: false,
+            link_axis: false,
         }
     }
 }
@@ -34,7 +41,6 @@ struct PlotState {
     label: String,
     select: Selector,
     open: bool,
-
 }
 impl Default for PlotState {
     fn default() -> Self {
@@ -47,7 +53,10 @@ impl Default for PlotState {
 }
 
 #[derive(PartialEq, Clone, Copy)]
-enum Selector { Memory, DiskSpace}
+enum Selector {
+    Memory,
+    DiskSpace,
+}
 
 impl TemplateApp {
     /// Called once before the first frame.
@@ -64,7 +73,12 @@ impl TemplateApp {
         Default::default()
     }
 }
-
+#[derive(Hash)]
+struct Person {
+    id: u32,
+    name: String,
+    phone: u64,
+}
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -122,41 +136,91 @@ impl eframe::App for TemplateApp {
                 });
             }
 
-
-            if ui.button("New Window").on_hover_text("this is the tooltip").clicked() {
-                if !self.plot_states.iter().any(|ps| ps.label==self.label) {
-                    self.plot_states.push(PlotState{label: self.label.clone(), select: self.select, open:true});
-                }
+            if ui
+                .button("New Window")
+                .on_hover_text("this is the tooltip")
+                .clicked()
+                && !self.plot_states.iter().any(|ps| ps.label == self.label)
+            {
+                self.plot_states.push(PlotState {
+                    label: self.label.clone(),
+                    select: self.select,
+                    open: true,
+                });
             }
 
             // delete the closed windows
             self.plot_states.retain(|ps| ps.open);
 
-            for ps in self.plot_states.iter_mut() {
-                egui::Window::new(ps.label.clone()).title_bar(true).open(&mut ps.open).show(ctx, |win_ui| {
-                    win_ui.label("Hello World!");
-                    win_ui.horizontal(|win_ui_hor| {
-                        win_ui_hor.radio_value(&mut ps.select, Selector::Memory, "Memory");
-                        win_ui_hor.radio_value(&mut ps.select, Selector::DiskSpace, "Disk space");
-                    });
-                if ps.select == Selector::Memory {
-                    let sin: egui_plot::PlotPoints = (0..1000).map(|i| {
-                        let x = i as f64 * 0.01+self.value as f64;
-                        [x, x.sin()]
-                    }).collect();
-                    let line = egui_plot::Line::new(sin);
-                    egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
-                } else {
-                    let cos: egui_plot::PlotPoints = (0..1000).map(|i| {
-                        let x = i as f64 * 0.01-self.value as f64;
-                        [x, x.cos()]
-                    }).collect();
-                    let line = egui_plot::Line::new(cos);
-                    egui_plot::Plot::new("my_plot").view_aspect(1.0).width(640.0).height(240.0).show(win_ui, |plot_ui| plot_ui.line(line));
-                }
-            });
+            let person2 = Person {
+                id: 5,
+                name: "Bob".to_string(),
+                phone: 555_666_7777,
+            };
+
+            fn calculate_hash<T: Hash>(t: &T) -> u64 {
+                let mut s = DefaultHasher::new();
+                t.hash(&mut s);
+                s.finish()
             }
 
+            // this is only needed to get a random hash value
+            // needs to be refactored/improved
+            let plot_link_id = egui::Id::new(calculate_hash(&person2));
+
+            ui.checkbox(&mut self.link_cursor, "Link cursor");
+            ui.checkbox(&mut self.link_axis, "Link axis");
+
+            for ps in self.plot_states.iter_mut() {
+                egui::Window::new(ps.label.clone())
+                    .title_bar(true)
+                    .open(&mut ps.open)
+                    .show(ctx, |win_ui| {
+                        win_ui.label("Hello World!");
+                        win_ui.horizontal(|win_ui_hor| {
+                            win_ui_hor.radio_value(&mut ps.select, Selector::Memory, "Memory");
+                            win_ui_hor.radio_value(
+                                &mut ps.select,
+                                Selector::DiskSpace,
+                                "Disk space",
+                            );
+                        });
+                        if ps.select == Selector::Memory {
+                            let sin: egui_plot::PlotPoints = (0..1000)
+                                .map(|i| {
+                                    let x = i as f64 * 0.01 + self.value as f64;
+                                    [x, x.sin()]
+                                })
+                                .collect();
+                            let line = egui_plot::Line::new(sin);
+                            egui_plot::Plot::new("my_plot")
+                                .view_aspect(1.0)
+                                .width(640.0)
+                                .height(240.0)
+                                .link_cursor(plot_link_id, self.link_cursor, self.link_cursor)
+                                .link_axis(plot_link_id, self.link_axis, self.link_axis)
+                                .show(win_ui, |plot_ui| plot_ui.line(line));
+                        } else {
+                            let cos: egui_plot::PlotPoints = (0..1000)
+                                .map(|i| {
+                                    let x = i as f64 * 0.01 - self.value as f64;
+                                    [x, x.cos()]
+                                })
+                                .collect();
+                            let line = egui_plot::Line::new(cos);
+                            egui_plot::Plot::new("my_plot")
+                                .view_aspect(1.0)
+                                .width(640.0)
+                                .height(240.0)
+                                .link_cursor(plot_link_id, self.link_cursor, self.link_cursor)
+                                .link_axis(plot_link_id, self.link_axis, self.link_axis)
+                                .show(win_ui, |plot_ui| {
+                                    plot_ui.line(line);
+                                    plot_ui.vline(egui_plot::VLine::new(1.234));
+                                });
+                        }
+                    });
+            }
 
             ui.separator();
 
@@ -169,8 +233,6 @@ impl eframe::App for TemplateApp {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
             });
-
-
         });
     }
 }
