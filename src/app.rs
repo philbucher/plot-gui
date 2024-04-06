@@ -1,5 +1,3 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
-
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -152,21 +150,9 @@ impl eframe::App for TemplateApp {
             // delete the closed windows
             self.plot_states.retain(|ps| ps.open);
 
-            let person2 = Person {
-                id: 5,
-                name: "Bob".to_string(),
-                phone: 555_666_7777,
-            };
-
-            fn calculate_hash<T: Hash>(t: &T) -> u64 {
-                let mut s = DefaultHasher::new();
-                t.hash(&mut s);
-                s.finish()
-            }
-
             // this is only needed to get a random hash value
             // needs to be refactored/improved
-            let plot_link_id = egui::Id::new(calculate_hash(&person2));
+            let plot_link_id = egui::Id::new("my_plotRANDOMMM");
 
             ui.checkbox(&mut self.link_cursor, "Link cursor");
             ui.checkbox(&mut self.link_axis, "Link axis");
@@ -192,11 +178,20 @@ impl eframe::App for TemplateApp {
                                     [x, x.sin()]
                                 })
                                 .collect();
-                            let line = egui_plot::Line::new(sin);
+                            let line = egui_plot::Line::new(sin).name("NameOfLine");
                             egui_plot::Plot::new("my_plot")
                                 .view_aspect(1.0)
                                 .width(640.0)
                                 .height(240.0)
+                                .x_axis_label("random_XXX")
+                                .y_axis_label("some>>>YYY")
+                                .label_formatter(|name, value| {
+                                    if !name.is_empty() {
+                                        format!("{}: {:.*}%", name, 1, value.y)
+                                    } else {
+                                        format!("NonNAme: {:.*}%", 1, value.y)
+                                    }
+                                })
                                 .link_cursor(plot_link_id, self.link_cursor, self.link_cursor)
                                 .link_axis(plot_link_id, self.link_axis, self.link_axis)
                                 .show(win_ui, |plot_ui| plot_ui.line(line));
