@@ -71,12 +71,7 @@ impl TemplateApp {
         Default::default()
     }
 }
-#[derive(Hash)]
-struct Person {
-    id: u32,
-    name: String,
-    phone: u64,
-}
+
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
